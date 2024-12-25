@@ -70,7 +70,23 @@
                                 src: url,
                                 type: 'video/mp4'
                             });
-                            videoPlayer.play();
+
+                            // Adiciona eventos de erro e reprodução
+                            videoPlayer.on('error', function () {
+                                console.error('Erro ao tentar reproduzir o vídeo:', videoPlayer.error());
+                            });
+
+                            videoPlayer.on('loadeddata', function () {
+                                console.log('Dados do vídeo carregados.');
+                            });
+
+                            videoPlayer.on('canplay', function () {
+                                console.log('O vídeo está pronto para ser reproduzido.');
+                            });
+
+                            videoPlayer.play().catch(function (error) {
+                                console.error('Erro ao iniciar a reprodução:', error);
+                            });
                         });
                     } else {
                         console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
