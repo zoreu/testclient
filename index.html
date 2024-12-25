@@ -8,11 +8,11 @@
 </head>
 <body>
     <h1>WebTorrent Streaming</h1>
-    <video id="videoPlayer" controls></video>
+    <video id="videoPlayer" controls width="640" height="360"></video>
     <script>
         var client = new WebTorrent();
 
-        // Magnet URI do torrent
+        // Magnet URI ou URL do arquivo .torrent
         var magnetURI = 'https://zoreu.github.io/testclient/torrenttest.torrent';
 
         client.on('error', function (err) {
@@ -22,7 +22,7 @@
         client.add(magnetURI, function (torrent) {
             console.log('Torrent iniciado:', torrent.infoHash);
 
-            // Exibe todos os arquivos no console log
+            // Exibe todos os arquivos disponíveis no torrent
             torrent.files.forEach(function (file) {
                 console.log('Arquivo encontrado:', file.name);
             });
@@ -33,11 +33,19 @@
             });
 
             if (file) {
-                // Stream para o elemento de vídeo
-                file.renderTo('video#videoPlayer');
-                console.log('Reproduzindo arquivo:', file.name);
+                // Cria um blob URL para o arquivo e configura no player de vídeo
+                file.getBlobURL(function (err, url) {
+                    if (err) {
+                        console.error('Erro ao obter o Blob URL:', err.message);
+                        return;
+                    }
+                    var videoPlayer = document.getElementById('videoPlayer');
+                    videoPlayer.src = url;
+                    videoPlayer.play();
+                    console.log('Reproduzindo arquivo:', file.name);
+                });
             } else {
-                console.warn('Nenhum arquivo .mp4 encontrado.');
+                console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
             }
         });
     </script>
