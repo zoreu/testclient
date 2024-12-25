@@ -25,8 +25,7 @@
         var client = new WebTorrent();
 
         // Magnet URI ou URL do arquivo .torrent
-        //var magnetURI = 'https://webtorrent.io/torrents/sintel.torrent';
-        var magnetURI = 'https://zoreu.github.io/testclient/order.torrent';
+        var magnetURI = 'https://webtorrent.io/torrents/sintel.torrent';
 
         client.on('error', function (err) {
             console.error('Erro no cliente WebTorrent:', err.message);
@@ -58,44 +57,17 @@
             if (file) {
                 console.log('Arquivo selecionado para reprodução:', file.name);
 
-                // Cria o stream do arquivo
-                var stream = file.createReadStream();
-                var videoPlayer = videojs('videoPlayer');
-                var mediaSource = new MediaSource();
+                // Usa file.streamURL para obter a URL de stream do arquivo
+                var streamURL = file.streamURL;
+                console.log('URL de stream criada:', streamURL);
 
+                // Configura o Video.js para reproduzir o vídeo
+                var videoPlayer = videojs('videoPlayer');
                 videoPlayer.src({
-                    src: URL.createObjectURL(mediaSource),
+                    src: streamURL,
                     type: 'video/mp4'
                 });
-
-                mediaSource.addEventListener('sourceopen', function () {
-                    var sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
-                    var queue = [];
-
-                    stream.on('data', function (chunk) {
-                        queue.push(chunk);
-                        processQueue();
-                    });
-
-                    stream.on('end', function () {
-                        mediaSource.endOfStream();
-                        videoPlayer.play();
-                        console.log('Reprodução concluída.');
-                    });
-
-                    stream.on('error', function (err) {
-                        console.error('Erro durante o streaming:', err.message);
-                        mediaSource.endOfStream();
-                    });
-
-                    function processQueue() {
-                        if (queue.length > 0 && !sourceBuffer.updating) {
-                            sourceBuffer.appendBuffer(queue.shift());
-                        }
-                    }
-
-                    sourceBuffer.addEventListener('updateend', processQueue);
-                });
+                videoPlayer.play();
             } else {
                 console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
             }
