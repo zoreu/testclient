@@ -57,17 +57,23 @@
             if (file) {
                 console.log('Arquivo selecionado para reprodução:', file.name);
 
-                // Usa file.streamURL para obter a URL de stream do arquivo
-                var streamURL = file.streamURL;
-                console.log('URL de stream criada:', streamURL);
+                // Usa file.getBlobURL para obter a URL de blob do arquivo
+                file.getBlobURL(function (err, url) {
+                    if (err) {
+                        console.error('Erro ao obter a URL do blob:', err.message);
+                        return;
+                    }
 
-                // Configura o Video.js para reproduzir o vídeo
-                var videoPlayer = videojs('videoPlayer');
-                videoPlayer.src({
-                    src: streamURL,
-                    type: 'video/mp4'
+                    console.log('URL do blob criada:', url);
+
+                    // Configura o Video.js para reproduzir o vídeo
+                    var videoPlayer = videojs('videoPlayer');
+                    videoPlayer.src({
+                        src: url,
+                        type: 'video/mp4'
+                    });
+                    videoPlayer.play();
                 });
-                videoPlayer.play();
             } else {
                 console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
             }
