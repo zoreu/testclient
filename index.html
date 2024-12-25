@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebTorrent Streaming</title>
+    <title>WebTorrent Streaming com Video.js</title>
+    <link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+    <script src="https://vjs.zencdn.net/7.11.4/video.min.js"></script>
 </head>
 <body>
-    <h1>WebTorrent Streaming</h1>
-    <video id="videoPlayer" controls width="640" height="360"></video>
+    <h1>WebTorrent Streaming com Video.js</h1>
+    <video id="videoPlayer" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360"></video>
     <script>
         var client = new WebTorrent();
 
@@ -35,29 +37,49 @@
             if (file) {
                 console.log('Arquivo selecionado para reprodução:', file.name);
 
-                // Usar MediaSource para transmitir o arquivo
-                var videoPlayer = document.getElementById('videoPlayer');
-                var mediaSource = new MediaSource();
+                // Tenta usar file.getBlobURL
+                file.getBlobURL(function (err, url) {
+                    if (err) {
+                        console.error('Erro ao criar a URL do blob:', err.message);
+                        console.log('Usando alternativa manual para criar a URL do blob...');
 
-                videoPlayer.src = URL.createObjectURL(mediaSource);
+                        // Alternativa manual para criar URL de blob
+                        var videoPlayer = videojs('videoPlayer');
+                        var mediaSource = new MediaSource();
 
-                mediaSource.addEventListener('sourceopen', function () {
-                    var sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
-                    var stream = file.createReadStream();
+                        videoPlayer.src({
+                            src: URL.createObjectURL(mediaSource),
+                            type: 'video/mp4'
+                        });
 
-                    stream.on('data', function (chunk) {
-                        sourceBuffer.appendBuffer(chunk);
-                    });
+                        mediaSource.addEventListener('sourceopen', function () {
+                            var sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+                            var stream = file.createReadStream();
 
-                    stream.on('end', function () {
-                        mediaSource.endOfStream();
-                        console.log('Reprodução concluída.');
-                    });
+                            stream.on('data', function (chunk) {
+                                sourceBuffer.appendBuffer(chunk);
+                            });
 
-                    stream.on('error', function (err) {
-                        console.error('Erro durante o streaming:', err.message);
-                        mediaSource.endOfStream();
-                    });
+                            stream.on('end', function () {
+                                mediaSource.endOfStream();
+                                videoPlayer.play();
+                                console.log('Reprodução concluída.');
+                            });
+
+                            stream.on('error', function (err) {
+                                console.error('Erro durante o streaming:', err.message);
+                                mediaSource.endOfStream();
+                            });
+                        });
+                    } else {
+                        // Configura o Video.js para reproduzir o vídeo
+                        var videoPlayer = videojs('videoPlayer');
+                        videoPlayer.src({
+                            src: url,
+                            type: 'video/mp4'
+                        });
+                        videoPlayer.play();
+                    }
                 });
             } else {
                 console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
