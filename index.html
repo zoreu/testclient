@@ -25,7 +25,6 @@
         var client = new WebTorrent();
 
         // Magnet URI ou URL do arquivo .torrent
-        //var magnetURI = 'http://localhost/torrenttest.torrent';
         var magnetURI = 'https://webtorrent.io/torrents/sintel.torrent';
 
         client.on('error', function (err) {
@@ -70,9 +69,11 @@
 
                 mediaSource.addEventListener('sourceopen', function () {
                     var sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+                    var queue = [];
 
                     stream.on('data', function (chunk) {
-                        sourceBuffer.appendBuffer(chunk);
+                        queue.push(chunk);
+                        processQueue();
                     });
 
                     stream.on('end', function () {
@@ -85,6 +86,14 @@
                         console.error('Erro durante o streaming:', err.message);
                         mediaSource.endOfStream();
                     });
+
+                    function processQueue() {
+                        if (queue.length > 0 && !sourceBuffer.updating) {
+                            sourceBuffer.appendBuffer(queue.shift());
+                        }
+                    }
+
+                    sourceBuffer.addEventListener('updateend', processQueue);
                 });
             } else {
                 console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
