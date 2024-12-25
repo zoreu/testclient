@@ -35,21 +35,29 @@
             if (file) {
                 console.log('Arquivo selecionado para reprodução:', file.name);
 
-                // Usa getBuffer para criar um Blob URL
-                file.getBuffer(function (err, buffer) {
-                    if (err) {
-                        console.error('Erro ao obter o buffer do arquivo:', err.message);
-                        return;
-                    }
+                // Usar MediaSource para transmitir o arquivo
+                var videoPlayer = document.getElementById('videoPlayer');
+                var mediaSource = new MediaSource();
 
-                    var blob = new Blob([buffer], { type: 'video/mp4' });
-                    var url = URL.createObjectURL(blob);
+                videoPlayer.src = URL.createObjectURL(mediaSource);
 
-                    // Configura o URL no player de vídeo
-                    var videoPlayer = document.getElementById('videoPlayer');
-                    videoPlayer.src = url;
-                    videoPlayer.play();
-                    console.log('Reproduzindo arquivo:', file.name);
+                mediaSource.addEventListener('sourceopen', function () {
+                    var sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+                    var stream = file.createReadStream();
+
+                    stream.on('data', function (chunk) {
+                        sourceBuffer.appendBuffer(chunk);
+                    });
+
+                    stream.on('end', function () {
+                        mediaSource.endOfStream();
+                        console.log('Reprodução concluída.');
+                    });
+
+                    stream.on('error', function (err) {
+                        console.error('Erro durante o streaming:', err.message);
+                        mediaSource.endOfStream();
+                    });
                 });
             } else {
                 console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
