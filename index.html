@@ -32,6 +32,8 @@
                 return file.name.endsWith('.mp4');
             });
 
+            console.log('arquivo selecionado:', file.name);
+
             if (file) {
                 // Cria um blob URL para o arquivo e configura no player de vídeo
                 file.getBlobURL(function (err, url) {
