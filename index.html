@@ -42,41 +42,46 @@
             torrent.on('download', function (bytes) {
                 var progress = Math.round(torrent.progress * 100);
                 document.getElementById('progress').textContent = 'Progresso do download: ' + progress + '%';
+                
+                if (progress >= 4 && !torrent.playing) {
+                    torrent.playing = true;
+                    console.log('Iniciando reprodução, progresso:', progress, '%');
+
+                    // Obtém o primeiro arquivo de vídeo do torrent
+                    var file = torrent.files.find(function (file) {
+                        return file.name.endsWith('.mp4');
+                    });
+
+                    if (file) {
+                        console.log('Arquivo selecionado para reprodução:', file.name);
+
+                        // Usa file.getBlobURL para obter a URL de blob do arquivo
+                        file.getBlobURL(function (err, url) {
+                            if (err) {
+                                console.error('Erro ao obter a URL do blob:', err.message);
+                                return;
+                            }
+
+                            console.log('URL do blob criada:', url);
+
+                            // Configura o Video.js para reproduzir o vídeo
+                            var videoPlayer = videojs('videoPlayer');
+                            videoPlayer.src({
+                                src: url,
+                                type: 'video/mp4'
+                            });
+                            videoPlayer.play();
+                        });
+                    } else {
+                        console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
+                    }
+                }
             });
 
             // Exibe todos os arquivos disponíveis no torrent
             torrent.files.forEach(function (file) {
                 console.log('Arquivo encontrado:', file.name);
             });
-
-            // Obtém o primeiro arquivo de vídeo do torrent
-            var file = torrent.files.find(function (file) {
-                return file.name.endsWith('.mp4');
-            });
-
-            if (file) {
-                console.log('Arquivo selecionado para reprodução:', file.name);
-
-                // Usa file.getBlobURL para obter a URL de blob do arquivo
-                file.getBlobURL(function (err, url) {
-                    if (err) {
-                        console.error('Erro ao obter a URL do blob:', err.message);
-                        return;
-                    }
-
-                    console.log('URL do blob criada:', url);
-
-                    // Configura o Video.js para reproduzir o vídeo
-                    var videoPlayer = videojs('videoPlayer');
-                    videoPlayer.src({
-                        src: url,
-                        type: 'video/mp4'
-                    });
-                    videoPlayer.play();
-                });
-            } else {
-                console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
-            }
         });
     </script>
 </body>
