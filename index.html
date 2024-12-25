@@ -32,17 +32,20 @@
                 return file.name.endsWith('.mp4');
             });
 
-            console.log('arquivo selecionado:', file.name);
-
             if (file) {
-                console.log('tem arquivo pra reproducao');
-                // Cria um blob URL para o arquivo e configura no player de vídeo
-                file.getBlobURL(function (err, url) {
+                console.log('Arquivo selecionado para reprodução:', file.name);
+
+                // Usa getBuffer para criar um Blob URL
+                file.getBuffer(function (err, buffer) {
                     if (err) {
-                        console.error('Erro ao obter o Blob URL:', err.message);
+                        console.error('Erro ao obter o buffer do arquivo:', err.message);
                         return;
                     }
-                    console.log('url blob:', url);
+
+                    var blob = new Blob([buffer], { type: 'video/mp4' });
+                    var url = URL.createObjectURL(blob);
+
+                    // Configura o URL no player de vídeo
                     var videoPlayer = document.getElementById('videoPlayer');
                     videoPlayer.src = url;
                     videoPlayer.play();
