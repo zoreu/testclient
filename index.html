@@ -39,6 +39,7 @@
                         console.error('Erro ao obter o Blob URL:', err.message);
                         return;
                     }
+                    console.log('url blob:', url)
                     var videoPlayer = document.getElementById('videoPlayer');
                     videoPlayer.src = url;
                     videoPlayer.play();
