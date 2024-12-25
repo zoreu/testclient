@@ -35,6 +35,7 @@
             console.log('arquivo selecionado:', file.name);
 
             if (file) {
+                console.log('tem arquivo pra reproducao');
                 // Cria um blob URL para o arquivo e configura no player de vídeo
                 file.getBlobURL(function (err, url) {
                     if (err) {
