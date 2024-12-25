@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebTorrent Streaming</title>
+    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+</head>
+<body>
+    <h1>WebTorrent Streaming</h1>
+    <video id="videoPlayer" controls></video>
+    <script>
+        var client = new WebTorrent();
+
+        // Magnet URI do torrent
+        var magnetURI = 'https://webtorrent.io/torrents/sintel.torrent';
+
+        client.on('error', function (err) {
+            console.error('Erro no cliente WebTorrent:', err.message);
+        });
+
+        client.add(magnetURI, function (torrent) {
+            console.log('Torrent iniciado:', torrent.infoHash);
+
+            // Exibe todos os arquivos no console log
+            torrent.files.forEach(function (file) {
+                console.log('Arquivo encontrado:', file.name);
+            });
+
+            // Obtém o primeiro arquivo de vídeo do torrent
+            var file = torrent.files.find(function (file) {
+                return file.name.endsWith('.mp4');
+            });
+
+            if (file) {
+                // Stream para o elemento de vídeo
+                file.renderTo('video#videoPlayer');
+                console.log('Reproduzindo arquivo:', file.name);
+            } else {
+                console.warn('Nenhum arquivo .mp4 encontrado.');
+            }
+        });
+    </script>
+</body>
+</html>
