@@ -7,15 +7,26 @@
     <link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
     <script src="https://vjs.zencdn.net/7.11.4/video.min.js"></script>
+    <style>
+        #status {
+            margin-top: 20px;
+            font-family: Arial, sans-serif;
+        }
+    </style>
 </head>
 <body>
     <h1>WebTorrent Streaming com Video.js</h1>
     <video id="videoPlayer" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360"></video>
+    <div id="status">
+        <p id="peers">Peers conectados: 0</p>
+        <p id="progress">Progresso do download: 0%</p>
+    </div>
     <script>
         var client = new WebTorrent();
 
         // Magnet URI ou URL do arquivo .torrent
-        var magnetURI = 'https://zoreu.github.io/testclient/torrenttest.torrent';
+        //var magnetURI = 'http://localhost/torrenttest.torrent';
+        var magnetURI = 'https://webtorrent.io/torrents/sintel.torrent';
 
         client.on('error', function (err) {
             console.error('Erro no cliente WebTorrent:', err.message);
@@ -23,6 +34,16 @@
 
         client.add(magnetURI, function (torrent) {
             console.log('Torrent iniciado:', torrent.infoHash);
+
+            // Atualiza a interface com o número de peers conectados e progresso do download
+            torrent.on('wire', function () {
+                document.getElementById('peers').textContent = 'Peers conectados: ' + torrent.wires.length;
+            });
+
+            torrent.on('download', function (bytes) {
+                var progress = Math.round(torrent.progress * 100);
+                document.getElementById('progress').textContent = 'Progresso do download: ' + progress + '%';
+            });
 
             // Exibe todos os arquivos disponíveis no torrent
             torrent.files.forEach(function (file) {
@@ -37,49 +58,13 @@
             if (file) {
                 console.log('Arquivo selecionado para reprodução:', file.name);
 
-                // Tenta usar file.getBlobURL
-                file.getBlobURL(function (err, url) {
+                // Stream diretamente para o elemento de vídeo
+                file.renderTo('video#videoPlayer', function (err, elem) {
                     if (err) {
-                        console.error('Erro ao criar a URL do blob:', err.message);
-                        console.log('Usando alternativa manual para criar a URL do blob...');
-
-                        // Alternativa manual para criar URL de blob
-                        var videoPlayer = videojs('videoPlayer');
-                        var mediaSource = new MediaSource();
-
-                        videoPlayer.src({
-                            src: URL.createObjectURL(mediaSource),
-                            type: 'video/mp4'
-                        });
-
-                        mediaSource.addEventListener('sourceopen', function () {
-                            var sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
-                            var stream = file.createReadStream();
-
-                            stream.on('data', function (chunk) {
-                                sourceBuffer.appendBuffer(chunk);
-                            });
-
-                            stream.on('end', function () {
-                                mediaSource.endOfStream();
-                                videoPlayer.play();
-                                console.log('Reprodução concluída.');
-                            });
-
-                            stream.on('error', function (err) {
-                                console.error('Erro durante o streaming:', err.message);
-                                mediaSource.endOfStream();
-                            });
-                        });
-                    } else {
-                        // Configura o Video.js para reproduzir o vídeo
-                        var videoPlayer = videojs('videoPlayer');
-                        videoPlayer.src({
-                            src: url,
-                            type: 'video/mp4'
-                        });
-                        videoPlayer.play();
+                        console.error('Erro ao fazer streaming do vídeo:', err.message);
+                        return;
                     }
+                    console.log('Streaming iniciado no elemento de vídeo');
                 });
             } else {
                 console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
