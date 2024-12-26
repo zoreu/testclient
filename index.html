@@ -42,62 +42,78 @@
             torrent.on('download', function (bytes) {
                 var progress = Math.round(torrent.progress * 100);
                 document.getElementById('progress').textContent = 'Progresso do download: ' + progress + '%';
-                
-                if (progress >= 4 && !torrent.playing) {
-                    torrent.playing = true;
-                    console.log('Iniciando reprodução, progresso:', progress, '%');
-
-                    // Obtém o primeiro arquivo de vídeo do torrent
-                    var file = torrent.files.find(function (file) {
-                        return file.name.endsWith('.mp4');
-                    });
-
-                    if (file) {
-                        console.log('Arquivo selecionado para reprodução:', file.name);
-
-                        // Usa file.getBlobURL para obter a URL de blob do arquivo
-                        file.getBlobURL(function (err, url) {
-                            if (err) {
-                                console.error('Erro ao obter a URL do blob:', err.message);
-                                return;
-                            }
-
-                            console.log('URL do blob criada:', url);
-
-                            // Configura o Video.js para reproduzir o vídeo
-                            var videoPlayer = videojs('videoPlayer');
-                            videoPlayer.src({
-                                src: url,
-                                type: 'video/mp4'
-                            });
-
-                            // Adiciona eventos de erro e reprodução
-                            videoPlayer.on('error', function () {
-                                console.error('Erro ao tentar reproduzir o vídeo:', videoPlayer.error());
-                            });
-
-                            videoPlayer.on('loadeddata', function () {
-                                console.log('Dados do vídeo carregados.');
-                            });
-
-                            videoPlayer.on('canplay', function () {
-                                console.log('O vídeo está pronto para ser reproduzido.');
-                            });
-
-                            videoPlayer.play().catch(function (error) {
-                                console.error('Erro ao iniciar a reprodução:', error);
-                            });
-                        });
-                    } else {
-                        console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
-                    }
-                }
             });
 
             // Exibe todos os arquivos disponíveis no torrent
             torrent.files.forEach(function (file) {
                 console.log('Arquivo encontrado:', file.name);
             });
+
+            // Obtém o primeiro arquivo de vídeo do torrent
+            var file = torrent.files.find(function (file) {
+                return file.name.endsWith('.mp4');
+            });
+
+            if (file) {
+                console.log('Arquivo selecionado para reprodução:', file.name);
+
+                // Cria o stream do arquivo e usa MediaSource para transmitir o vídeo enquanto baixa
+                var stream = file.createReadStream();
+                var videoPlayer = videojs('videoPlayer');
+                var mediaSource = new MediaSource();
+                var queue = [];
+
+                videoPlayer.src({
+                    src: URL.createObjectURL(mediaSource),
+                    type: 'video/mp4'
+                });
+
+                mediaSource.addEventListener('sourceopen', function () {
+                    var sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+
+                    stream.on('data', function (chunk) {
+                        queue.push(chunk);
+                        processQueue();
+                    });
+
+                    stream.on('end', function () {
+                        mediaSource.endOfStream();
+                        videoPlayer.play();
+                        console.log('Reprodução concluída.');
+                    });
+
+                    stream.on('error', function (err) {
+                        console.error('Erro durante o streaming:', err.message);
+                        mediaSource.endOfStream();
+                    });
+
+                    function processQueue() {
+                        if (queue.length > 0 && !sourceBuffer.updating) {
+                            sourceBuffer.appendBuffer(queue.shift());
+                        }
+                    }
+
+                    sourceBuffer.addEventListener('updateend', processQueue);
+                });
+
+                videoPlayer.on('error', function () {
+                    console.error('Erro ao tentar reproduzir o vídeo:', videoPlayer.error());
+                });
+
+                videoPlayer.on('loadeddata', function () {
+                    console.log('Dados do vídeo carregados.');
+                });
+
+                videoPlayer.on('canplay', function () {
+                    console.log('O vídeo está pronto para ser reproduzido.');
+                });
+
+                videoPlayer.play().catch(function (error) {
+                    console.error('Erro ao iniciar a reprodução:', error);
+                });
+            } else {
+                console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
+            }
         });
     </script>
 </body>
