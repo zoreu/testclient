@@ -71,6 +71,7 @@
 
                 mediaSource.addEventListener('sourceopen', function () {
                     sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+                    sourceBuffer.addEventListener('updateend', processQueue);
                     processQueue();
                 });
 
@@ -80,17 +81,29 @@
                 });
 
                 stream.on('end', function () {
-                    mediaSource.endOfStream();
+                    if (!sourceBuffer.updating) {
+                        mediaSource.endOfStream();
+                    } else {
+                        sourceBuffer.addEventListener('updateend', function () {
+                            mediaSource.endOfStream();
+                        });
+                    }
                     console.log('Reprodução concluída.');
                 });
 
                 stream.on('error', function (err) {
                     console.error('Erro durante o streaming:', err.message);
-                    mediaSource.endOfStream();
+                    if (!sourceBuffer.updating) {
+                        mediaSource.endOfStream();
+                    } else {
+                        sourceBuffer.addEventListener('updateend', function () {
+                            mediaSource.endOfStream();
+                        });
+                    }
                 });
 
                 function processQueue() {
-                    if (queue.length > 0 && sourceBuffer && !sourceBuffer.updating) {
+                    if (queue.length > 0 && !sourceBuffer.updating) {
                         try {
                             sourceBuffer.appendBuffer(queue.shift());
                         } catch (e) {
@@ -98,8 +111,6 @@
                         }
                     }
                 }
-
-                sourceBuffer.addEventListener('updateend', processQueue);
 
                 videoPlayer.on('error', function () {
                     console.error('Erro ao tentar reproduzir o vídeo:', videoPlayer.error());
