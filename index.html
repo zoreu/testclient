@@ -62,6 +62,7 @@
                 var videoPlayer = videojs('videoPlayer');
                 var mediaSource = new MediaSource();
                 var queue = [];
+                var sourceBuffer;
 
                 videoPlayer.src({
                     src: URL.createObjectURL(mediaSource),
@@ -69,32 +70,36 @@
                 });
 
                 mediaSource.addEventListener('sourceopen', function () {
-                    var sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+                    sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+                    processQueue();
+                });
 
-                    stream.on('data', function (chunk) {
-                        queue.push(chunk);
-                        processQueue();
-                    });
+                stream.on('data', function (chunk) {
+                    queue.push(chunk);
+                    processQueue();
+                });
 
-                    stream.on('end', function () {
-                        mediaSource.endOfStream();
-                        videoPlayer.play();
-                        console.log('Reprodução concluída.');
-                    });
+                stream.on('end', function () {
+                    mediaSource.endOfStream();
+                    console.log('Reprodução concluída.');
+                });
 
-                    stream.on('error', function (err) {
-                        console.error('Erro durante o streaming:', err.message);
-                        mediaSource.endOfStream();
-                    });
+                stream.on('error', function (err) {
+                    console.error('Erro durante o streaming:', err.message);
+                    mediaSource.endOfStream();
+                });
 
-                    function processQueue() {
-                        if (queue.length > 0 && !sourceBuffer.updating) {
+                function processQueue() {
+                    if (queue.length > 0 && sourceBuffer && !sourceBuffer.updating) {
+                        try {
                             sourceBuffer.appendBuffer(queue.shift());
+                        } catch (e) {
+                            console.error('Erro ao adicionar buffer:', e);
                         }
                     }
+                }
 
-                    sourceBuffer.addEventListener('updateend', processQueue);
-                });
+                sourceBuffer.addEventListener('updateend', processQueue);
 
                 videoPlayer.on('error', function () {
                     console.error('Erro ao tentar reproduzir o vídeo:', videoPlayer.error());
@@ -106,10 +111,6 @@
 
                 videoPlayer.on('canplay', function () {
                     console.log('O vídeo está pronto para ser reproduzido.');
-                });
-
-                videoPlayer.play().catch(function (error) {
-                    console.error('Erro ao iniciar a reprodução:', error);
                 });
             } else {
                 console.warn('Nenhum arquivo .mp4 encontrado no torrent.');
