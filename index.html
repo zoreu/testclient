@@ -72,7 +72,6 @@
                 mediaSource.addEventListener('sourceopen', function () {
                     sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
                     sourceBuffer.addEventListener('updateend', processQueue);
-                    processQueue();
                 });
 
                 stream.on('data', function (chunk) {
@@ -81,33 +80,31 @@
                 });
 
                 stream.on('end', function () {
-                    if (!sourceBuffer.updating) {
-                        mediaSource.endOfStream();
-                    } else {
-                        sourceBuffer.addEventListener('updateend', function () {
-                            mediaSource.endOfStream();
-                        });
-                    }
+                    queue.push(null); // Indica o fim do stream
+                    processQueue();
                     console.log('Reprodução concluída.');
                 });
 
                 stream.on('error', function (err) {
                     console.error('Erro durante o streaming:', err.message);
-                    if (!sourceBuffer.updating) {
-                        mediaSource.endOfStream();
-                    } else {
-                        sourceBuffer.addEventListener('updateend', function () {
-                            mediaSource.endOfStream();
-                        });
-                    }
+                    queue.push(null); // Indica o fim do stream
+                    processQueue();
                 });
 
                 function processQueue() {
-                    if (queue.length > 0 && !sourceBuffer.updating) {
-                        try {
-                            sourceBuffer.appendBuffer(queue.shift());
-                        } catch (e) {
-                            console.error('Erro ao adicionar buffer:', e);
+                    if (queue.length > 0 && sourceBuffer && !sourceBuffer.updating) {
+                        var chunk = queue.shift();
+                        if (chunk === null) {
+                            if (mediaSource.readyState === 'open') {
+                                sourceBuffer.removeEventListener('updateend', processQueue);
+                                mediaSource.endOfStream();
+                            }
+                        } else {
+                            try {
+                                sourceBuffer.appendBuffer(chunk);
+                            } catch (e) {
+                                console.error('Erro ao adicionar buffer:', e);
+                            }
                         }
                     }
                 }
